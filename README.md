@@ -7,7 +7,7 @@
 
 A standalone HTML/JavaScript application for calculating GPU memory requirements for large language models (LLMs). This tool assists AI practitioners in determining hardware requirements for inference, fine-tuning, and training from scratch.
 
-![LLM Memory Calculator Screenshot](https://raw.githubusercontent.com/username/llm-memory-calculator/main/screenshot.png)
+![LLM Memory Calculator Screenshot](https://raw.githubusercontent.com/deadjoe/llm-memory-calculator/main/screenshot.jpg)
 
 ## Features
 
@@ -22,7 +22,7 @@ A standalone HTML/JavaScript application for calculating GPU memory requirements
 
 ### Online Version
 
-You can access the online version of this calculator at: https://yourusername.github.io/llm-memory-calculator/
+You can access the online version of this calculator at: https://deadjoe.github.io/llm-memory-calculator/
 
 ### Local Usage
 
