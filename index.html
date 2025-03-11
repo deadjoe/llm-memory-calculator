@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Calculate GPU memory requirements for large language models (LLMs) with this interactive tool for AI practitioners.">
+    <meta name="theme-color" content="#0a0a0a">
     <title>LLM Memory Calculator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
@@ -131,13 +133,87 @@
             position: relative;
         }
         
+        /* Responsive design optimizations */
         @media (max-width: 900px) {
             .calculator {
                 grid-template-columns: 1fr;
+                gap: 1.5rem;
             }
             
             h1 {
                 font-size: 2.5rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .input-section, .result-section {
+                padding: 1.5rem;
+            }
+            
+            .options {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .option-btn {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .memory-visualization {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .visualization-legend {
+                flex-direction: column;
+                align-items: flex-start;
+                margin-left: 20%;
+            }
+            
+            .memory-value {
+                font-size: 3rem;
+            }
+            
+            .memory-unit {
+                font-size: 1.4rem;
+            }
+        }
+        
+        /* Fix for small devices in portrait orientation */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.8rem;
+            }
+            
+            p {
+                font-size: 0.95rem;
+            }
+            
+            .selection-title {
+                font-size: 1rem;
+            }
+            
+            .option-btn {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .tooltip-text {
+                width: 200px;
+                margin-left: -100px;
             }
         }
         
@@ -1043,14 +1119,34 @@
         // Initialize the 3D scene for memory visualization
         function initMemoryScene() {
             memoryScene = new THREE.Scene();
-            memoryCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
-            memoryRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             
-            memoryRenderer.setSize(250, 250);
+            // Create responsive canvas
+            const container = document.getElementById('memory-viz');
+            const containerWidth = container.clientWidth || 250;
+            const containerHeight = container.clientHeight || 250;
+            
+            memoryCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+            memoryRenderer = new THREE.WebGLRenderer({ 
+                antialias: window.innerWidth > 600, // Reduce antialias on mobile for performance
+                alpha: true 
+            });
+            
+            memoryRenderer.setSize(containerWidth, containerHeight);
             memoryRenderer.setClearColor(0x000000, 0);
             
+            // Add resize handler
+            window.addEventListener('resize', function() {
+                const newWidth = container.clientWidth || 250;
+                const newHeight = container.clientHeight || 250;
+                
+                if (memoryRenderer && memoryCamera) {
+                    memoryRenderer.setSize(newWidth, newHeight);
+                    memoryCamera.aspect = 1; // Keep square aspect
+                    memoryCamera.updateProjectionMatrix();
+                }
+            });
+            
             // Add to DOM
-            const container = document.getElementById('memory-viz');
             container.innerHTML = ''; // Clear existing content
             container.appendChild(memoryRenderer.domElement);
             
@@ -1076,15 +1172,38 @@
             memoryScene.add(secondaryLight);
             memoryScene.add(pointLight);
             
-            // Add orbit controls
+            // Add orbit controls with mobile optimization
             controls = new THREE.OrbitControls(memoryCamera, memoryRenderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.rotateSpeed = 0.7;
             
-            // Add subtle auto-rotation
+            // Mobile touch optimizations
+            controls.enableZoom = true;
+            controls.zoomSpeed = 0.5;
+            controls.enablePan = false; // Disable panning for better mobile experience
+            
+            // Detect if on mobile/touch device
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            // Add subtle auto-rotation (faster on mobile for better visual feedback)
             controls.autoRotate = true;
-            controls.autoRotateSpeed = 0.5;
+            controls.autoRotateSpeed = isTouchDevice ? 1.0 : 0.5;
+            
+            // Add touch event listeners for mobile
+            if (isTouchDevice) {
+                // Reset auto-rotation on touch to avoid confusion
+                memoryRenderer.domElement.addEventListener('touchstart', function() {
+                    controls.autoRotate = false;
+                }, { passive: true });
+                
+                // Resume auto-rotation when touch interaction ends
+                memoryRenderer.domElement.addEventListener('touchend', function() {
+                    setTimeout(function() {
+                        controls.autoRotate = true;
+                    }, 3000); // Resume after 3 seconds of inactivity
+                }, { passive: true });
+            }
             
             // Create empty groups for each memory type
             const modelGroup = new THREE.Group();

@@ -92,14 +92,20 @@ The calculator uses a comprehensive algorithm to estimate memory requirements ba
 ### Complete Formula
 
 For inference mode:
-```
-Memory (GB) = [(Base Model Size × 1.15 × 1.05) + KV Cache + Activation Memory + Buffer] × System Factor
-```
+
+![equation](https://latex.codecogs.com/png.latex?%5Cdpi%7B120%7D%20%5Cbg_white%20%5Ctext%7BMemory%7D_%7B%5Ctext%7BGB%7D%7D%20%3D%20%5Cleft%5B%5Cleft%28%5Ctext%7BBase%20Model%20Size%7D%20%5Ctimes%201.15%20%5Ctimes%201.05%5Cright%29%20&plus;%20%5Ctext%7BKV%20Cache%7D%20&plus;%20%5Ctext%7BActivation%20Memory%7D%20&plus;%20%5Ctext%7BBuffer%7D%5Cright%5D%20%5Ctimes%20%5Ctext%7BSystem%20Factor%7D)
+
+Where:
+
+![equation](https://latex.codecogs.com/png.latex?%5Cdpi%7B120%7D%20%5Cbg_white%20%5Ctext%7BKV%20Cache%7D_%7B%5Ctext%7BGB%7D%7D%20%3D%20%5Cfrac%7B%5Ctext%7BNum%20Layers%7D%20%5Ctimes%202%20%5Ctimes%20%5Ctext%7BHidden%20Size%7D%20%5Ctimes%20%5Ctext%7BContext%20Length%7D%20%5Ctimes%20%5Ctext%7BBytes%20per%20Param%7D%7D%7B10%5E9%7D)
+
+![equation](https://latex.codecogs.com/png.latex?%5Cdpi%7B120%7D%20%5Cbg_white%20%5Ctext%7BActivation%20Memory%7D_%7B%5Ctext%7BGB%7D%7D%20%3D%20%5Cfrac%7B%5Ctext%7BHidden%20Size%7D%20%5Ctimes%20%5Ctext%7BContext%20Length%7D%20%5Ctimes%20%5Ctext%7BBytes%20per%20Param%7D%20%5Ctimes%202%7D%7B10%5E9%7D)
+
+![equation](https://latex.codecogs.com/png.latex?%5Cdpi%7B120%7D%20%5Cbg_white%20%5Ctext%7BBuffer%7D_%7B%5Ctext%7BGB%7D%7D%20%3D%20%5Ctext%7BTotal%20Memory%20Before%20Buffer%7D%20%5Ctimes%200.08)
 
 For training/fine-tuning:
-```
-Memory (GB) = [(Base Model Size × 1.15 × Mode Factor) + Buffer] × System Factor
-```
+
+![equation](https://latex.codecogs.com/png.latex?%5Cdpi%7B120%7D%20%5Cbg_white%20%5Ctext%7BMemory%7D_%7B%5Ctext%7BGB%7D%7D%20%3D%20%5Cleft%5B%5Cleft%28%5Ctext%7BBase%20Model%20Size%7D%20%5Ctimes%201.15%20%5Ctimes%20%5Ctext%7BMode%20Factor%7D%5Cright%29%20&plus;%20%5Ctext%7BBuffer%7D%5Cright%5D%20%5Ctimes%20%5Ctext%7BSystem%20Factor%7D)
 
 ### Hardware Recommendations
 
