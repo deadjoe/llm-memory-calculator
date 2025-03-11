@@ -20,7 +20,25 @@ A standalone HTML/JavaScript application for calculating GPU memory requirements
 
 ## Usage
 
-Simply open `llm-memory-calculator.html` in any modern web browser. No installation or server setup required.
+### Online Version
+
+You can access the online version of this calculator at: https://yourusername.github.io/llm-memory-calculator/
+
+### Local Usage
+
+Simply open `llm-memory-calculator.html` or `index.html` in any modern web browser. No installation or server setup required.
+
+### Hosting Your Own Copy
+
+To host this calculator on GitHub Pages:
+
+1. Fork this repository
+2. Go to your fork's Settings tab
+3. Navigate to "Pages" in the left sidebar
+4. Under "Build and deployment", select "Deploy from a branch"
+5. Select "main" branch and "/ (root)" folder
+6. Click "Save"
+7. After a few minutes, your calculator will be available at `https://yourusername.github.io/llm-memory-calculator/`
 
 ## Memory Calculation Algorithm
 
