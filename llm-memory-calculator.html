@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Memory Calculator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #ffffff;
+            --accent-color: #1a1a1a;
+            --highlight-color: #ffffff;
+            --card-bg: #131313;
+            --hover-color: #2a2a2a;
+            --selected-color: #333333;
+            --gradient-start: #1a1a1a;
+            --gradient-end: #0a0a0a;
+            --glow-color: rgba(255, 255, 255, 0.05);
+            --accent-blue: #4F46E5;
+            --accent-purple: #8B5CF6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Source Serif 4', serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: radial-gradient(circle at top right, var(--gradient-start), var(--bg-color) 60%);
+            background-attachment: fixed;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+            position: relative;
+        }
+        
+        /* Decorative elements */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+        }
+        
+        .accent-circle {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.015) 0%, rgba(0,0,0,0) 70%);
+            top: -200px;
+            right: -200px;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        header {
+            margin-bottom: 3rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header-accent {
+            position: absolute;
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), transparent);
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            letter-spacing: -0.05em;
+            background: linear-gradient(to right, #ffffff, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            text-shadow: 0 0 30px rgba(255,255,255,0.1);
+        }
+        
+        p {
+            margin-bottom: 1.5rem;
+            opacity: 0.8;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 300;
+            font-size: 1.1rem;
+        }
+        
+        .calculator {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        @media (max-width: 900px) {
+            .calculator {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+        }
+        
+        .input-section, .result-section {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .input-section:hover, .result-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+        }
+        
+        .card-glow {
+            position: absolute;
+            top: -100px;
+            left: -100px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, var(--glow-color) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            letter-spacing: -0.03em;
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+            bottom: -10px;
+            left: 0;
+        }
+        
+        .selection-group {
+            margin-bottom: 2.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .selection-group:hover {
+            transform: translateX(5px);
+        }
+        
+        .selection-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        
+        .selection-title i {
+            margin-right: 12px;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .option-btn {
+            background-color: var(--accent-color);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-family: 'Source Serif 4', serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            font-size: 0.95rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .option-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .option-btn:hover {
+            background-color: var(--hover-color);
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .option-btn:hover::before {
+            opacity: 1;
+        }
+        
+        .option-btn.selected {
+            background-color: var(--selected-color);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3), 0 10px 20px rgba(0, 0, 0, 0.3);
+            transform: translateY(-3px) scale(1.05);
+            font-weight: 600;
+        }
+        
+        .option-btn.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .formula-container {
+            margin: 2rem 0 2.5rem;
+            padding: 2rem;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .formula-container::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0.03) 0%,
+                rgba(255, 255, 255, 0.05) 25%,
+                rgba(255, 255, 255, 0.03) 50%,
+                rgba(255, 255, 255, 0.01) 75%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .result-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 220px;
+            margin-top: 1.5rem;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .result-box:hover {
+            transform: scale(1.02);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result-box::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            z-index: -1;
+            background: linear-gradient(45deg, rgba(79, 70, 229, 0.1), transparent, rgba(139, 92, 246, 0.1), transparent);
+            background-size: 400% 400%;
+            filter: blur(10px);
+            animation: gradientBackground 15s ease infinite;
+        }
+        
+        @keyframes gradientBackground {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .memory-value {
+            font-family: 'Fraunces', serif;
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #ffffff, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255,255,255,0.2);
+            transition: all 0.5s ease;
+        }
+        
+        .memory-unit {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8rem;
+            opacity: 0.7;
+            letter-spacing: 2px;
+        }
+        
+        .gpu-count {
+            margin-top: 2.5rem;
+            text-align: center;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .gpu-subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        #gpu-suggestion {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            padding: 0.5rem 0;
+            letter-spacing: -0.01em;
+        }
+        
+        .gpu-estimate {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            min-height: 40px;
+        }
+        
+        .gpu-icon {
+            display: inline-block;
+            width: 36px;
+            height: 18px;
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+            opacity: 0.8;
+            border-radius: 3px;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        
+        .gpu-icon:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+        
+        .gpu-icon::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: auto;
+            font-size: 0.9rem;
+            opacity: 0.5;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
+        }
+        
+        .tooltip {
+            display: inline-block;
+            margin-left: 8px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .tooltip i {
+            font-size: 0.9rem;
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+        
+        .tooltip:hover i {
+            opacity: 1;
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            width: 240px;
+            background-color: rgba(40, 40, 40, 0.95);
+            color: var(--text-color);
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -120px;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            transform: translateY(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            font-size: 0.85rem;
+            font-weight: normal;
+            font-family: 'Inter', sans-serif;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(40, 40, 40, 0.95) transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .param-input {
+            display: none;
+        }
+        
+        /* Additional styles for system selector */
+        .system-options {
+            margin-bottom: 2rem;
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .container {
+            animation: fadeIn 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .selection-group:nth-child(1) { animation: slideIn 0.4s 0.1s both ease-out; }
+        .selection-group:nth-child(2) { animation: slideIn 0.4s 0.2s both ease-out; }
+        .selection-group:nth-child(3) { animation: slideIn 0.4s 0.3s both ease-out; }
+        .selection-group:nth-child(4) { animation: slideIn 0.4s 0.4s both ease-out; }
+        
+        .result-box { animation: fadeIn 0.6s 0.4s both cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        
+        /* Extra styling for the formula */
+        .katex {
+            font-size: 1.3rem !important;
+        }
+        
+        .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 5px 0;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 3D Memory Visualization */
+        .memory-visualization {
+            width: 250px;
+            height: 250px;
+            margin: 2rem auto 0;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            background: linear-gradient(145deg, rgba(20, 20, 20, 0.3), rgba(30, 30, 30, 0.5));
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .memory-visualization:hover {
+            transform: scale(1.05);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5), 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .memory-visualization canvas {
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .visualization-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 5px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="accent-circle"></div>
+    
+    <div class="container">
+        <header>
+            <h1>LLM Memory Calculator</h1>
+            <p>Estimate GPU memory requirements for different large language model configurations</p>
+            <div class="header-accent"></div>
+        </header>
+        
+        <div class="calculator">
+            <div class="input-section">
+                <div class="card-glow"></div>
+                <h2>Model Configuration</h2>
+                
+                <div class="selection-group">
+                    <div class="selection-title">
+                        <i class="fas fa-desktop"></i> System Type
+                        <span class="tooltip">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="tooltip-text">Different hardware architectures handle memory differently. Apple Silicon uses unified memory, while dedicated GPUs have their own memory.</span>
+                        </span>
+                    </div>
+                    <div class="options system-options">
+                        <button type="button" class="option-btn" id="pc-option" onclick="selectSystem('pc-option')">PC with Dedicated GPU</button>
+                        <button type="button" class="option-btn" id="apple-option" onclick="selectSystem('apple-option')">Apple Silicon (Unified Memory)</button>
+                    </div>
+                </div>
+                
+                <div class="selection-group">
+                    <div class="selection-title">
+                        <i class="fas fa-microchip"></i> Model Size
+                        <span class="tooltip">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="tooltip-text">The parameter count determines model complexity and capabilities. Larger models generally offer better performance but require more computational resources.</span>
+                        </span>
+                    </div>
+                    <div class="options model-size-options">
+                        <button type="button" class="option-btn" id="model-7b" onclick="selectModel('model-7b', 7)">7B</button>
+                        <button type="button" class="option-btn" id="model-13b" onclick="selectModel('model-13b', 13)">13B</button>
+                        <button type="button" class="option-btn" id="model-34b" onclick="selectModel('model-34b', 34)">34B</button>
+                        <button type="button" class="option-btn" id="model-70b" onclick="selectModel('model-70b', 70)">70B</button>
+                        <button type="button" class="option-btn" id="model-175b" onclick="selectModel('model-175b', 175)">175B</button>
+                        <input type="number" id="param-input" class="param-input" value="7">
+                    </div>
+                </div>
+                
+                <div class="selection-group">
+                    <div class="selection-title">
+                        <i class="fas fa-compress-alt"></i> Precision/Quantization
+                        <span class="tooltip">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="tooltip-text">Lower precision reduces memory needs and increases inference speed, but may impact model performance. 4-bit and 8-bit quantization are common methods to reduce resource requirements.</span>
+                        </span>
+                    </div>
+                    <div class="options precision-options">
+                        <button type="button" class="option-btn" id="prec-32" onclick="selectPrecision('prec-32', 32)">32-bit (FP32)</button>
+                        <button type="button" class="option-btn" id="prec-16" onclick="selectPrecision('prec-16', 16)">16-bit (FP16/BF16)</button>
+                        <button type="button" class="option-btn" id="prec-8" onclick="selectPrecision('prec-8', 8)">8-bit Quantized</button>
+                        <button type="button" class="option-btn" id="prec-4" onclick="selectPrecision('prec-4', 4)">4-bit Quantized</button>
+                    </div>
+                </div>
+                
+                <div class="selection-group">
+                    <div class="selection-title">
+                        <i class="fas fa-cogs"></i> Operation Mode
+                        <span class="tooltip">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="tooltip-text">Training requires additional memory for gradients and optimizer states. Inference uses the least memory, while training (especially from scratch) needs significantly more resources.</span>
+                        </span>
+                    </div>
+                    <div class="options mode-options">
+                        <button type="button" class="option-btn" id="mode-inference" onclick="selectMode('mode-inference', 1.05)">Inference Only (+5%)</button>
+                        <button type="button" class="option-btn" id="mode-finetune" onclick="selectMode('mode-finetune', 2.5)">Fine-tuning (+150%)</button>
+                        <button type="button" class="option-btn" id="mode-train" onclick="selectMode('mode-train', 4.0)">Training from Scratch (+300%)</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <div class="card-glow"></div>
+                <h2>Memory Requirements</h2>
+                
+                <div class="formula-container">
+                    <div id="formula"></div>
+                </div>
+                
+                <div class="result-box">
+                    <div class="memory-value" id="memory-result">28</div>
+                    <div class="memory-unit">GB</div>
+                </div>
+                
+                <div class="gpu-count">
+                    <div class="gpu-subtitle">
+                        <i class="fas fa-server"></i> Recommended Hardware
+                    </div>
+                    <div id="gpu-suggestion">Requires 1× A100 (80GB) or 2× A100 (40GB)</div>
+                    <div class="gpu-estimate" id="gpu-visual">
+                        <div class="gpu-icon"></div>
+                    </div>
+                </div>
+                
+                <div class="memory-visualization-container">
+                    <h3 style="text-align: center; margin-top: 2.5rem; font-size: 1.3rem; opacity: 0.9;">Memory Blocks Visualization</h3>
+                    <div id="memory-viz" class="memory-visualization"></div>
+                    <div class="visualization-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #FFFFFF;"></div>
+                            <span>Model</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #E5E5E5;"></div>
+                            <span>Framework</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #CCCCCC;"></div>
+                            <span>KV Cache</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #A3A3A3;"></div>
+                            <span>Activation</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #737373;"></div>
+                            <span>Buffer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2025 LLM Memory Calculator | Designed for AI developers | Based on model memory estimation formulas</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Global variables to store the current state
+        let currentModel = 7;
+        let currentPrecision = 16;
+        let currentSystemFactor = 1.0;
+        let isAppleSilicon = false;
+        let currentOverheadFactor = 1.05;
+        
+        // Three.js globals for memory visualization
+        let memoryScene, memoryCamera, memoryRenderer, controls;
+        let memoryVisualizationInitialized = false;
+        // Memory components for visualization
+        let modelSizeGB = 0;
+        let frameworkOverheadGB = 0;
+        let kvCacheGB = 0;
+        let activationMemoryGB = 0;
+        let bufferGB = 0;
+
+        // Initialize the calculator
+        window.onload = function() {
+            console.log("Window loaded");
+            
+            // Set default selected options
+            document.getElementById('pc-option').classList.add('selected');
+            document.getElementById('model-7b').classList.add('selected');
+            document.getElementById('prec-16').classList.add('selected');
+            document.getElementById('mode-inference').classList.add('selected');
+            
+            // Set initial param input value
+            document.getElementById('param-input').value = "7";
+            
+            // Do initial calculation
+            calculateMemory();
+            
+            // Card glow effect - simplified
+            const cards = document.querySelectorAll('.input-section, .result-section');
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const glow = card.querySelector('.card-glow');
+                
+                card.onmousemove = function(e) {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    glow.style.left = (x - 100) + 'px';
+                    glow.style.top = (y - 100) + 'px';
+                };
+                
+                card.onmouseleave = function() {
+                    glow.style.opacity = '0';
+                    setTimeout(function() {
+                        glow.style.opacity = '0.6';
+                    }, 300);
+                };
+            }
+        };
+        
+        // Selection functions with direct onclick handlers
+        function selectSystem(buttonId) {
+            // Clear previous selections
+            document.querySelectorAll('.system-options .option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Select this button
+            document.getElementById(buttonId).classList.add('selected');
+            
+            // Update state
+            if (buttonId === 'pc-option') {
+                currentSystemFactor = 1.0;
+                isAppleSilicon = false;
+            } else {
+                currentSystemFactor = 0.9;
+                isAppleSilicon = true;
+            }
+            
+            // Recalculate
+            calculateMemory();
+        }
+        
+        function selectModel(buttonId, value) {
+            // Clear previous selections
+            document.querySelectorAll('.model-size-options .option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Select this button
+            document.getElementById(buttonId).classList.add('selected');
+            
+            // Update state
+            currentModel = value;
+            document.getElementById('param-input').value = value;
+            
+            // Recalculate
+            calculateMemory();
+        }
+        
+        function selectPrecision(buttonId, value) {
+            // Clear previous selections
+            document.querySelectorAll('.precision-options .option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Select this button
+            document.getElementById(buttonId).classList.add('selected');
+            
+            // Update state
+            currentPrecision = value;
+            
+            // Recalculate
+            calculateMemory();
+        }
+        
+        function selectMode(buttonId, value) {
+            // Clear previous selections
+            document.querySelectorAll('.mode-options .option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Select this button
+            document.getElementById(buttonId).classList.add('selected');
+            
+            // Update state
+            currentOverheadFactor = value;
+            
+            // Recalculate
+            calculateMemory();
+        }
+        
+        // Memory calculation function
+        function calculateMemory() {
+            console.log("Calculating memory...");
+            console.log(`Model: ${currentModel}B, Precision: ${currentPrecision}-bit, Mode factor: ${currentOverheadFactor}, System: ${isAppleSilicon ? "Apple" : "PC"} (${currentSystemFactor})`);
+            
+            // Calculate memory with formula
+            const P = parseFloat(currentModel) * 1e9; // Convert to billions
+            
+            // Bytes per parameter based on precision (real-world values)
+            let bytesPerParamAtPrecision;
+            if (currentPrecision === 32) {
+                bytesPerParamAtPrecision = 4; // 32-bit = 4 bytes
+            } else if (currentPrecision === 16) {
+                bytesPerParamAtPrecision = 2; // 16-bit = 2 bytes
+            } else if (currentPrecision === 8) {
+                // 8-bit quantization in practice needs slightly more than 1 byte due to scales and zeros
+                bytesPerParamAtPrecision = 1.2; 
+            } else if (currentPrecision === 4) {
+                // 4-bit quantization in practice needs more than 0.5 bytes due to metadata overhead
+                bytesPerParamAtPrecision = 0.65; 
+            }
+            
+            // Calculate model size in GB
+            modelSizeGB = (P * bytesPerParamAtPrecision) / 1e9;
+            console.log("Base model size: " + modelSizeGB.toFixed(1) + " GB");
+            
+            // Add framework overhead (PyTorch, TensorFlow, etc.) - typically 10-20% additional overhead
+            frameworkOverheadGB = modelSizeGB * 0.15;
+            let totalMemoryGB = modelSizeGB + frameworkOverheadGB;
+            console.log("With framework overhead: " + totalMemoryGB.toFixed(1) + " GB");
+            
+            // Apply operation mode overhead
+            totalMemoryGB = totalMemoryGB * currentOverheadFactor;
+            
+            // Reset KV cache and activation memory
+            kvCacheGB = 0;
+            activationMemoryGB = 0;
+            
+            // Add KV cache for transformer models during inference
+            if (currentOverheadFactor <= 1.1) { // Only for inference mode
+                // More accurate KV cache calculation based on typical model architectures
+                // For common models, approximate num_layers and hidden_size based on parameter count
+                let numLayers, hiddenSize;
+                
+                if (P <= 7e9) { // 7B models
+                    numLayers = 32;
+                    hiddenSize = 4096;
+                } else if (P <= 13e9) { // 13B models
+                    numLayers = 40;
+                    hiddenSize = 5120;
+                } else if (P <= 34e9) { // 30-35B models
+                    numLayers = 60;
+                    hiddenSize = 6656;
+                } else if (P <= 70e9) { // 65-70B models
+                    numLayers = 80;
+                    hiddenSize = 8192;
+                } else { // 175B+ models
+                    numLayers = 96;
+                    hiddenSize = 12288;
+                }
+                
+                // Context length greatly affects KV cache - use a practical value
+                const contextLength = 8192; // Modern models typically use 8k+ context
+                
+                // KV cache stores 2 tensors (keys and values) per layer
+                kvCacheGB = (numLayers * 2 * hiddenSize * contextLength * bytesPerParamAtPrecision) / 1e9;
+                totalMemoryGB += kvCacheGB;
+                console.log("Added KV cache: " + kvCacheGB.toFixed(1) + " GB");
+                
+                // Add activation memory - important for actual inference
+                activationMemoryGB = (hiddenSize * contextLength * bytesPerParamAtPrecision * 2) / 1e9;
+                totalMemoryGB += activationMemoryGB;
+                console.log("Added activation memory: " + activationMemoryGB.toFixed(1) + " GB");
+            }
+            
+            // Add buffer for CUDA/cuDNN workspace and other GPU requirements (5-10%)
+            bufferGB = totalMemoryGB * 0.08;
+            totalMemoryGB += bufferGB;
+            console.log("Added CUDA workspace buffer: " + bufferGB.toFixed(1) + " GB");
+            
+            // Apply system architecture factor
+            totalMemoryGB = totalMemoryGB * currentSystemFactor;
+            console.log("Total memory after system factor: " + totalMemoryGB.toFixed(1) + " GB");
+            
+            // Update formula display with more detailed explanation
+            let formulaTex;
+            
+            if (currentOverheadFactor <= 1.1) {
+                // For inference, include KV cache and activations
+                formulaTex = `M = \\left[ \\left(${currentModel} \\times 10^9 \\times ${bytesPerParamAtPrecision} \\times 1.15 \\right) + \\text{KV Cache} + \\text{Activations} + \\text{Buffer} \\right] \\times ${currentSystemFactor.toFixed(1)} = ${totalMemoryGB.toFixed(1)} \\text{ GB}`;
+            } else {
+                // For training, simpler formula focusing on gradients and optimizer states
+                formulaTex = `M = \\left[ \\left(${currentModel} \\times 10^9 \\times ${bytesPerParamAtPrecision} \\times ${currentOverheadFactor} \\right) + \\text{Framework Overhead} + \\text{Buffer} \\right] \\times ${currentSystemFactor.toFixed(1)} = ${totalMemoryGB.toFixed(1)} \\text{ GB}`;
+            }
+            
+            document.getElementById('formula').innerHTML = '';
+            
+            // Use KaTeX to render
+            katex.render(formulaTex, document.getElementById('formula'), {
+                displayMode: true,
+                throwOnError: false
+            });
+            
+            // Update result
+            const resultEl = document.getElementById('memory-result');
+            resultEl.textContent = totalMemoryGB.toFixed(1);
+            
+            // Add animation to result
+            resultEl.style.transform = 'scale(1.1)';
+            setTimeout(function() {
+                resultEl.style.transform = 'scale(1)';
+            }, 300);
+            
+            // GPU recommendation - based on real-world usage requirements
+            // Consider actual available memory, not theoretical specs
+            let gpuSuggestion = '';
+            let gpuIcons = '';
+            
+            // Apply a safety factor to ensure we don't underestimate
+            const requiredMemoryGB = Math.ceil(totalMemoryGB * 1.1); // Add 10% safety margin
+            
+            if (isAppleSilicon) {
+                // Apple Silicon recommendations - Unified Memory architecture
+                // The actual usable GPU memory is typically less than total system memory
+                if (requiredMemoryGB <= 14) { // Reserve ~2GB for system
+                    gpuSuggestion = 'Compatible with M1/M2 Mac (16GB Unified Memory)';
+                    gpuIcons = '<div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 28) { // Reserve ~4GB for system
+                    gpuSuggestion = 'Compatible with M1/M2 Max or M3 Pro Mac (32GB Unified Memory)';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 56) { // Reserve ~8GB for system
+                    gpuSuggestion = 'Compatible with M1/M2 Ultra or M3 Max Mac (64GB Unified Memory)';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 108) { // Reserve ~20GB for system/framework overhead
+                    gpuSuggestion = 'Requires M2/M3 Ultra Mac (128GB Unified Memory)';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                } else {
+                    gpuSuggestion = 'Exceeds current Apple Silicon capacity';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                }
+            } else {
+                // NVIDIA GPU recommendations - Dedicated GPU memory
+                // Adjust for actual usable VRAM after CUDA runtime allocation
+                if (requiredMemoryGB <= 10) { // ~2GB reserved for CUDA runtime
+                    gpuSuggestion = 'Compatible with RTX 3060/4060 (12GB VRAM)';
+                    gpuIcons = '<div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 22) { // ~2GB reserved for CUDA runtime
+                    gpuSuggestion = 'Compatible with RTX 3090/4090 (24GB VRAM)';
+                    gpuIcons = '<div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 40) { // ~8GB for larger models at high precision
+                    gpuSuggestion = 'Requires 1× RTX A6000/L40 (48GB VRAM)';
+                    gpuIcons = '<div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 72) { // ~8GB for framework overhead
+                    gpuSuggestion = 'Requires 1× A100/H100 (80GB VRAM)';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 144) { // ~16GB for multi-GPU overhead
+                    gpuSuggestion = 'Requires 2× A100/H100 (80GB VRAM each)';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                } else if (requiredMemoryGB <= 288) {
+                    gpuSuggestion = 'Requires 4× A100/H100 (80GB VRAM each)';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                } else {
+                    gpuSuggestion = 'Requires 8× A100/H100 or cloud-based solution';
+                    gpuIcons = '<div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div><div class="gpu-icon"></div>';
+                }
+            }
+            
+            document.getElementById('gpu-suggestion').textContent = gpuSuggestion;
+            document.getElementById('gpu-visual').innerHTML = gpuIcons;
+            
+            // Update 3D memory visualization
+            updateMemoryVisualization();
+        }
+        
+        // Three.js Memory Visualization Functions
+        
+        // Initialize the 3D scene for memory visualization
+        function initMemoryScene() {
+            memoryScene = new THREE.Scene();
+            memoryCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+            memoryRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            memoryRenderer.setSize(250, 250);
+            memoryRenderer.setClearColor(0x000000, 0);
+            
+            // Add to DOM
+            const container = document.getElementById('memory-viz');
+            container.innerHTML = ''; // Clear existing content
+            container.appendChild(memoryRenderer.domElement);
+            
+            // Set camera position
+            memoryCamera.position.set(15, 15, 15);
+            memoryCamera.lookAt(0, 0, 0);
+            
+            // Add enhanced lighting for better visibility on dark backgrounds
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); // Increased ambient light
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // Increased directional light
+            directionalLight.position.set(5, 10, 7);
+            
+            // Add a second directional light from a different angle
+            const secondaryLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            secondaryLight.position.set(-5, 8, -7);
+            
+            // Add a soft point light to enhance glow
+            const pointLight = new THREE.PointLight(0xffffff, 0.5, 25);
+            pointLight.position.set(0, 10, 5);
+            
+            memoryScene.add(ambientLight);
+            memoryScene.add(directionalLight);
+            memoryScene.add(secondaryLight);
+            memoryScene.add(pointLight);
+            
+            // Add orbit controls
+            controls = new THREE.OrbitControls(memoryCamera, memoryRenderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.rotateSpeed = 0.7;
+            
+            // Add subtle auto-rotation
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            
+            // Create empty groups for each memory type
+            const modelGroup = new THREE.Group();
+            modelGroup.name = 'model';
+            memoryScene.add(modelGroup);
+            
+            const frameworkGroup = new THREE.Group();
+            frameworkGroup.name = 'framework';
+            memoryScene.add(frameworkGroup);
+            
+            const kvCacheGroup = new THREE.Group();
+            kvCacheGroup.name = 'kvcache';
+            memoryScene.add(kvCacheGroup);
+            
+            const activationGroup = new THREE.Group();
+            activationGroup.name = 'activation';
+            memoryScene.add(activationGroup);
+            
+            const bufferGroup = new THREE.Group();
+            bufferGroup.name = 'buffer';
+            memoryScene.add(bufferGroup);
+            
+            // Start animation loop
+            animate();
+            
+            memoryVisualizationInitialized = true;
+        }
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            if (controls) controls.update();
+            if (memoryRenderer && memoryScene && memoryCamera) {
+                memoryRenderer.render(memoryScene, memoryCamera);
+            }
+        }
+        
+        // Update the memory visualization based on current calculation
+        function updateMemoryVisualization() {
+            if (!memoryVisualizationInitialized) {
+                initMemoryScene();
+            }
+            
+            // Calculate each memory component's cube count (1 cube per 2GB)
+            const cubeScale = 2; // GB per cube
+            const modelCubes = Math.max(1, Math.ceil(modelSizeGB / cubeScale));
+            const frameworkCubes = Math.max(1, Math.ceil(frameworkOverheadGB / cubeScale));
+            
+            let kvCacheCubes = 0;
+            let activationCubes = 0;
+            if (currentOverheadFactor <= 1.1) { // Only for inference mode
+                kvCacheCubes = Math.max(0, Math.ceil(kvCacheGB / cubeScale));
+                activationCubes = Math.max(0, Math.ceil(activationMemoryGB / cubeScale));
+            }
+            
+            const bufferCubes = Math.max(1, Math.ceil(bufferGB / cubeScale));
+            
+            // Update each group of cubes with white to gray scale for better contrast
+            updateCubeGroup(modelCubes, 'model', 0xFFFFFF);  // Pure white
+            updateCubeGroup(frameworkCubes, 'framework', 0xE5E5E5);  // Very light gray
+            updateCubeGroup(kvCacheCubes, 'kvcache', 0xCCCCCC);  // Light gray
+            updateCubeGroup(activationCubes, 'activation', 0xA3A3A3);  // Medium gray
+            updateCubeGroup(bufferCubes, 'buffer', 0x737373);  // Dark gray
+            
+            // Arrange all cubes into a stack
+            arrangeCubes();
+        }
+        
+        // Update a single group of cubes
+        function updateCubeGroup(count, groupName, color) {
+            const group = memoryScene.getObjectByName(groupName);
+            if (!group) return;
+            
+            // Current number of cubes
+            const currentCount = group.children.length;
+            
+            // Add more cubes if needed
+            if (count > currentCount) {
+                for (let i = currentCount; i < count; i++) {
+                    const cube = createMemoryCube(color);
+                    cube.position.y = -15; // Start below the scene
+                    cube.scale.set(0.1, 0.1, 0.1); // Start small
+                    group.add(cube);
+                    
+                    // Animate cube appearance
+                    new TWEEN.Tween(cube.position)
+                        .to({ y: 0 }, 800)
+                        .easing(TWEEN.Easing.Elastic.Out)
+                        .delay(i * 50)
+                        .start();
+                        
+                    new TWEEN.Tween(cube.scale)
+                        .to({ x: 1, y: 1, z: 1 }, 600)
+                        .easing(TWEEN.Easing.Back.Out)
+                        .delay(i * 50)
+                        .start();
+                }
+            } 
+            // Remove excess cubes
+            else if (count < currentCount) {
+                for (let i = currentCount - 1; i >= count; i--) {
+                    const cube = group.children[i];
+                    
+                    // Animate cube removal
+                    new TWEEN.Tween(cube.position)
+                        .to({ y: 15 }, 500)
+                        .easing(TWEEN.Easing.Back.In)
+                        .start();
+                        
+                    new TWEEN.Tween(cube.scale)
+                        .to({ x: 0.1, y: 0.1, z: 0.1 }, 500)
+                        .easing(TWEEN.Easing.Back.In)
+                        .onComplete(() => {
+                            group.remove(cube);
+                            if (cube.geometry) cube.geometry.dispose();
+                            if (cube.material) cube.material.dispose();
+                        })
+                        .start();
+                }
+            }
+        }
+        
+        // Create a single memory cube with enhanced visibility on dark backgrounds
+        function createMemoryCube(color) {
+            const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            
+            // Make edges more visible with subtle darker edge for definition
+            const edgeGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const edgeMaterial = new THREE.MeshBasicMaterial({
+                color: 0x444444,  // Darker color for edge definition
+                transparent: true,
+                opacity: 0.3,      // Slightly more visible
+                wireframe: true
+            });
+            const edges = new THREE.Mesh(edgeGeometry, edgeMaterial);
+            
+            // Enhanced material properties optimized for white/gray on black background
+            const material = new THREE.MeshPhysicalMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.95,  // Higher opacity for white/gray
+                metalness: 0.1,  // Less metalness for cleaner look
+                roughness: 0.3,  // Slight increase in roughness for better diffusion
+                emissive: color,
+                emissiveIntensity: 0.25,  // Moderate glow to maintain color distinction
+                side: THREE.DoubleSide,
+                reflectivity: 0.8,
+                clearcoat: 0.7,  // Higher glossy finish for better highlights
+                clearcoatRoughness: 0.05,  // Smoother clearcoat for shinier appearance
+                envMapIntensity: 1.2  // Enhanced environment map effects
+            });
+            
+            const cube = new THREE.Mesh(geometry, material);
+            cube.add(edges);  // Add wireframe edges for better definition
+            
+            return cube;
+        }
+        
+        // Arrange all cubes in a stacked formation
+        function arrangeCubes() {
+            const groups = [
+                { group: memoryScene.getObjectByName('model'), name: 'Model' },
+                { group: memoryScene.getObjectByName('framework'), name: 'Framework' },
+                { group: memoryScene.getObjectByName('kvcache'), name: 'KV Cache' },
+                { group: memoryScene.getObjectByName('activation'), name: 'Activation' },
+                { group: memoryScene.getObjectByName('buffer'), name: 'Buffer' }
+            ].filter(item => item.group !== undefined && item.group.children.length > 0);
+            
+            let yOffset = 0;
+            
+            groups.forEach(item => {
+                const group = item.group;
+                
+                // Calculate grid dimensions for this group
+                const cubeCount = group.children.length;
+                const sideLength = Math.ceil(Math.sqrt(cubeCount));
+                
+                // Position each cube in a grid with slight random offset
+                group.children.forEach((cube, index) => {
+                    const row = Math.floor(index / sideLength);
+                    const col = index % sideLength;
+                    
+                    // Center the grid
+                    const xPos = (col - (sideLength - 1) / 2) * 1.2;
+                    const zPos = (row - Math.floor((cubeCount - 1) / sideLength) / 2) * 1.2;
+                    
+                    // Add slight randomness for visual interest
+                    const randomX = (Math.random() - 0.5) * 0.1;
+                    const randomZ = (Math.random() - 0.5) * 0.1;
+                    
+                    // Animate to new position
+                    new TWEEN.Tween(cube.position)
+                        .to({ 
+                            x: xPos + randomX, 
+                            y: yOffset + 0.5, // 0.5 is half the cube height
+                            z: zPos + randomZ 
+                        }, 800)
+                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .start();
+                        
+                    // Add slight rotation for visual interest
+                    new TWEEN.Tween(cube.rotation)
+                        .to({ 
+                            x: (Math.random() - 0.5) * 0.1,
+                            y: (Math.random() - 0.5) * 0.1,
+                            z: (Math.random() - 0.5) * 0.1
+                        }, 800)
+                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .start();
+                });
+                
+                // Move up for the next group (based on rows needed)
+                const rowsNeeded = Math.ceil(cubeCount / sideLength);
+                yOffset += rowsNeeded * 1.2;
+            });
+        }
+    </script>
+</body>
+</html>

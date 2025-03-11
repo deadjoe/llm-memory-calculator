@@ -1,0 +1,111 @@
+# LLM Memory Calculator
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![HTML](https://img.shields.io/badge/HTML-5-orange)](https://developer.mozilla.org/en-US/docs/Web/HTML)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6-blue)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Three.js](https://img.shields.io/badge/Three.js-r128-green)](https://threejs.org/)
+
+A standalone HTML/JavaScript application for calculating GPU memory requirements for large language models (LLMs). This tool assists AI practitioners in determining hardware requirements for inference, fine-tuning, and training from scratch.
+
+![LLM Memory Calculator Screenshot](https://raw.githubusercontent.com/username/llm-memory-calculator/main/screenshot.png)
+
+## Features
+
+- Calculate memory requirements for models ranging from 7B to 175B+ parameters
+- Support for different precision levels (32-bit, 16-bit, 8-bit and 4-bit quantization)
+- Estimates for different operation modes (inference, fine-tuning, training)
+- Hardware recommendations for both NVIDIA GPUs and Apple Silicon
+- Interactive 3D visualization of memory allocation components
+- Single HTML file with no server requirements
+
+## Usage
+
+Simply open `llm-memory-calculator.html` in any modern web browser. No installation or server setup required.
+
+## Memory Calculation Algorithm
+
+The calculator uses a comprehensive algorithm to estimate memory requirements based on real-world usage patterns rather than theoretical minimums. Below is the detailed calculation methodology:
+
+### Core Memory Components
+
+1. **Base Model Size (GB)**:
+   - Parameter Count (P) × Bytes per Parameter
+   - Bytes per parameter varies by precision:
+     - 32-bit (FP32): 4 bytes/parameter
+     - 16-bit (FP16/BF16): 2 bytes/parameter
+     - 8-bit Quantized: 1.2 bytes/parameter (includes quantization overhead)
+     - 4-bit Quantized: 0.65 bytes/parameter (includes metadata overhead)
+
+2. **Framework Overhead**:
+   - 15% additional to base model size
+   - Accounts for PyTorch/TensorFlow runtime memory allocation
+
+3. **Operation Mode Multiplier**:
+   - Inference: 1.05× multiplier (5% overhead)
+   - Fine-tuning: 2.5× multiplier (150% overhead)
+   - Training from Scratch: 4.0× multiplier (300% overhead)
+
+4. **Inference-specific Components** (only applied in inference mode):
+   - **KV Cache**:
+     - KV Cache (GB) = (Num Layers × 2 × Hidden Size × Context Length × Bytes per Parameter) ÷ 10^9
+     - Uses model-specific values for layers and hidden dimensions:
+       - 7B models: 32 layers, 4096 hidden dimension
+       - 13B models: 40 layers, 5120 hidden dimension
+       - 34B models: 60 layers, 6656 hidden dimension
+       - 70B models: 80 layers, 8192 hidden dimension
+       - 175B+ models: 96 layers, 12288 hidden dimension
+     - Uses 8192 as the default context length
+
+   - **Activation Memory**:
+     - Activation Memory (GB) = (Hidden Size × Context Length × Bytes per Parameter × 2) ÷ 10^9
+
+5. **CUDA/Runtime Buffer**:
+   - 8% of total memory allocation
+   - Accounts for CUDA workspace and system buffers
+
+6. **System Architecture Factor**:
+   - PC/NVIDIA: 1.0× (standard)
+   - Apple Silicon: 0.9× (unified memory efficiency)
+
+7. **Hardware Recommendation Safety Margin**:
+   - 10% additional buffer for recommendations
+   - Ensures comfortable operation without memory pressure
+
+### Complete Formula
+
+For inference mode:
+```
+Memory (GB) = [(Base Model Size × 1.15 × 1.05) + KV Cache + Activation Memory + Buffer] × System Factor
+```
+
+For training/fine-tuning:
+```
+Memory (GB) = [(Base Model Size × 1.15 × Mode Factor) + Buffer] × System Factor
+```
+
+### Hardware Recommendations
+
+The calculator accounts for actual usable VRAM in its recommendations by reserving:
+- ~2-8GB for system/CUDA runtime on NVIDIA GPUs
+- ~2-20GB for system needs on Apple Silicon (depending on total RAM)
+
+## Development
+
+The calculator is built with vanilla JavaScript and Three.js for visualizations. All computation happens client-side with no external API dependencies.
+
+### Technologies Used
+
+- HTML5 and CSS3 for layout and styling
+- Vanilla JavaScript (ES6+) for calculations
+- Three.js for 3D memory visualization
+- KaTeX for formula rendering
+- Tween.js for smooth animations
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Developed based on practical experience and benchmarks from running large language models
+- Memory estimation formulas derived from real-world LLM deployment scenarios
