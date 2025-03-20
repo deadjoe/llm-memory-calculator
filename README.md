@@ -12,7 +12,7 @@ A standalone HTML/JavaScript application for calculating GPU memory requirements
 ## Features
 
 - Calculate memory requirements for models ranging from 7B to 175B+ parameters
-- Support for different precision levels (32-bit, 16-bit, 8-bit and 4-bit quantization)
+- Support for different precision levels (32-bit, 16-bit, 8-bit, 4-bit, and Q4_K_M quantization)
 - Estimates for different operation modes (inference, fine-tuning, training)
 - Hardware recommendations for both NVIDIA GPUs and Apple Silicon
 - Interactive 3D visualization of memory allocation components
@@ -53,6 +53,7 @@ The calculator uses a comprehensive algorithm to estimate memory requirements ba
      - 16-bit (FP16/BF16): 2 bytes/parameter
      - 8-bit Quantized: 1.2 bytes/parameter (includes quantization overhead)
      - 4-bit Quantized: 0.65 bytes/parameter (includes metadata overhead)
+     - Q4_K_M Quantized: 0.59 bytes/parameter (more efficient 4-bit quantization)
 
 2. **Framework Overhead**:
    - 15% additional to base model size
@@ -69,6 +70,7 @@ The calculator uses a comprehensive algorithm to estimate memory requirements ba
      - Uses model-specific values for layers and hidden dimensions:
        - 7B models: 32 layers, 4096 hidden dimension
        - 13B models: 40 layers, 5120 hidden dimension
+       - 24B models: 48 layers, 6144 hidden dimension
        - 34B models: 60 layers, 6656 hidden dimension
        - 70B models: 80 layers, 8192 hidden dimension
        - 175B+ models: 96 layers, 12288 hidden dimension

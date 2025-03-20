@@ -714,6 +714,7 @@
                     <div class="options model-size-options">
                         <button type="button" class="option-btn" id="model-7b" onclick="selectModel('model-7b', 7)">7B</button>
                         <button type="button" class="option-btn" id="model-13b" onclick="selectModel('model-13b', 13)">13B</button>
+                        <button type="button" class="option-btn" id="model-24b" onclick="selectModel('model-24b', 24)">24B</button>
                         <button type="button" class="option-btn" id="model-34b" onclick="selectModel('model-34b', 34)">34B</button>
                         <button type="button" class="option-btn" id="model-70b" onclick="selectModel('model-70b', 70)">70B</button>
                         <button type="button" class="option-btn" id="model-175b" onclick="selectModel('model-175b', 175)">175B</button>
@@ -734,6 +735,7 @@
                         <button type="button" class="option-btn" id="prec-16" onclick="selectPrecision('prec-16', 16)">16-bit (FP16/BF16)</button>
                         <button type="button" class="option-btn" id="prec-8" onclick="selectPrecision('prec-8', 8)">8-bit Quantized</button>
                         <button type="button" class="option-btn" id="prec-4" onclick="selectPrecision('prec-4', 4)">4-bit Quantized</button>
+                        <button type="button" class="option-btn" id="prec-q4km" onclick="selectPrecision('prec-q4km', 'q4km')">Q4_K_M</button>
                     </div>
                 </div>
                 
@@ -943,7 +945,7 @@
         // Memory calculation function
         function calculateMemory() {
             console.log("Calculating memory...");
-            console.log(`Model: ${currentModel}B, Precision: ${currentPrecision}-bit, Mode factor: ${currentOverheadFactor}, System: ${isAppleSilicon ? "Apple" : "PC"} (${currentSystemFactor})`);
+            console.log(`Model: ${currentModel}B, Precision: ${currentPrecision}, Mode factor: ${currentOverheadFactor}, System: ${isAppleSilicon ? "Apple" : "PC"} (${currentSystemFactor})`);
             
             // Calculate memory with formula
             const P = parseFloat(currentModel) * 1e9; // Convert to billions
@@ -960,6 +962,9 @@
             } else if (currentPrecision === 4) {
                 // 4-bit quantization in practice needs more than 0.5 bytes due to metadata overhead
                 bytesPerParamAtPrecision = 0.65; 
+            } else if (currentPrecision === 'q4km') {
+                // Q4_K_M quantization has slightly better memory efficiency than standard 4-bit
+                bytesPerParamAtPrecision = 0.59; 
             }
             
             // Calculate model size in GB
@@ -990,6 +995,9 @@
                 } else if (P <= 13e9) { // 13B models
                     numLayers = 40;
                     hiddenSize = 5120;
+                } else if (P <= 24e9) { // 24B models
+                    numLayers = 48;
+                    hiddenSize = 6144;
                 } else if (P <= 34e9) { // 30-35B models
                     numLayers = 60;
                     hiddenSize = 6656;
@@ -1026,13 +1034,15 @@
             
             // Update formula display with more detailed explanation
             let formulaTex;
+            let precisionDisplay = currentPrecision === 'q4km' ? 'Q4\\_K\\_M' : currentPrecision;
+            let bytesDisplay = bytesPerParamAtPrecision.toFixed(2);
             
             if (currentOverheadFactor <= 1.1) {
                 // For inference, include KV cache and activations
-                formulaTex = `M = \\left[ \\left(${currentModel} \\times 10^9 \\times ${bytesPerParamAtPrecision} \\times 1.15 \\right) + \\text{KV Cache} + \\text{Activations} + \\text{Buffer} \\right] \\times ${currentSystemFactor.toFixed(1)} = ${totalMemoryGB.toFixed(1)} \\text{ GB}`;
+                formulaTex = `M = \\left[ \\left(${currentModel} \\times 10^9 \\times ${bytesDisplay} \\times 1.15 \\right) + \\text{KV Cache} + \\text{Activations} + \\text{Buffer} \\right] \\times ${currentSystemFactor.toFixed(1)} = ${totalMemoryGB.toFixed(1)} \\text{ GB}`;
             } else {
                 // For training, simpler formula focusing on gradients and optimizer states
-                formulaTex = `M = \\left[ \\left(${currentModel} \\times 10^9 \\times ${bytesPerParamAtPrecision} \\times ${currentOverheadFactor} \\right) + \\text{Framework Overhead} + \\text{Buffer} \\right] \\times ${currentSystemFactor.toFixed(1)} = ${totalMemoryGB.toFixed(1)} \\text{ GB}`;
+                formulaTex = `M = \\left[ \\left(${currentModel} \\times 10^9 \\times ${bytesDisplay} \\times ${currentOverheadFactor} \\right) + \\text{Framework Overhead} + \\text{Buffer} \\right] \\times ${currentSystemFactor.toFixed(1)} = ${totalMemoryGB.toFixed(1)} \\text{ GB}`;
             }
             
             document.getElementById('formula').innerHTML = '';
